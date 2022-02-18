@@ -14,31 +14,41 @@ public class Assignment8Appli {
 
 	private static Assignment8 listOfIntegersFromFile = new Assignment8();
 	private static List<Integer> listOfAllNumbers =  Collections.synchronizedList(new ArrayList<>());
+	private static Integer totalIterationsForCallingMethod = 1000;
 	
 	
 	public static void main(String[] args) throws InterruptedException {
-
-		ExecutorService pool = Executors.newCachedThreadPool();
+		
+		ExecutorService cachedPoolOfThreads = Executors.newCachedThreadPool();
 				
-		List<CompletableFuture<Object>> tasks = new ArrayList<>();
+		//This list is going to be checked for completeness before running the final mapping operation, so we can ensure 
+		//ALL promises have been complete, and All data is available to the main thread
+		List<CompletableFuture<Object>> listOfPromisesToAddPulledDataToListOfAllNumbers = new ArrayList<>();
 		
-		for(int i = 0; i < 1000; i++) {
+		for(int i = 0; i < totalIterationsForCallingMethod; i++) {
 			
-			CompletableFuture<Object> task =  CompletableFuture.supplyAsync(() -> listOfIntegersFromFile.getNumbers() , pool)
+			//for each iteration, the promise to call .getNumbers() from assignment 8, and then to add those numbers to the 
+			//ListOfAllNumbers is made, using an available thread from the cachedPoolOfThreads
+			CompletableFuture<Object> promiseToAddPulledDataToListOfAllNumbers =  CompletableFuture.supplyAsync(() -> listOfIntegersFromFile.getNumbers() , cachedPoolOfThreads)
 																									  .thenApplyAsync(completeList -> listOfAllNumbers.addAll(completeList));
-			tasks.add(task);
+			
+			//This adds the task to be completed in the future (pulling the ArrayList of numbers from Assignment8.getNumbers())
+			// to the list of tasks able to complete in the future
+			listOfPromisesToAddPulledDataToListOfAllNumbers.add(promiseToAddPulledDataToListOfAllNumbers);
 		}
 		
-		while (tasks.stream().filter(t ->  t.isDone()).count() < 1000) {
-			Thread.sleep(1000);
+		//Checking that all promised operations have been completed before allowing the main thread to continue 
+		//to the last operation
+		while (listOfPromisesToAddPulledDataToListOfAllNumbers.stream().filter(promisedOperation ->  promisedOperation.isDone()).count() < totalIterationsForCallingMethod) {
+			Thread.sleep(500);
 		}
 		
 
-		 Map<Integer, Integer> output;	
+		 Map<Integer, Integer> recordOfEachIntegerOccurrence;	
 
-		output = listOfAllNumbers.stream()
-				  .collect(Collectors.toMap(i -> i, i -> 1, (oldValue, newValue) -> oldValue + 1));
-		System.out.println(output);
+		recordOfEachIntegerOccurrence = listOfAllNumbers.stream()
+				  .collect(Collectors.toMap(i -> i, i -> 1, (existing, replacement) -> existing + 1));
+		System.out.println(recordOfEachIntegerOccurrence);
 	}
 
 }
