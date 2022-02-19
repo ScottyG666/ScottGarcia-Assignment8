@@ -1,4 +1,4 @@
-package AsynchAssignment.src.com.coderscampus.assignment;
+package com.coderscampus.assignment;
 
 import java.io.IOException;
 import java.nio.file.Files;
